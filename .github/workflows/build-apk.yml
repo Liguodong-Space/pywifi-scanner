@@ -19,7 +19,9 @@ jobs:
             libltdl-dev automake
 
       - name: Install Python dependencies
-        run: pip3 install --upgrade buildozer cython virtualenv
+        run: |
+          pip3 install Cython==0.29.36
+          pip3 install --upgrade buildozer cython virtualenv
 
       - name: Cache Buildozer global directory
         uses: actions/cache@v4
