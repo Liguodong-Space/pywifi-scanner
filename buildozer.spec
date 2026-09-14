@@ -7,7 +7,7 @@ source.include_exts = py,png,jpg,kv,atlas
 version = 0.1
 
 # ⚠️ 关键依赖：必须包含 pywifi 和 android 权限库
-requirements = python3,kivy,pywifi,android
+requirements = python3,kivy,pyjnius==1.6.1,android
 
 # ⚠️ 关键权限：缺少这些 APP 会闪退或无法扫描
 android.permissions = ACCESS_FINE_LOCATION,ACCESS_COARSE_LOCATION,ACCESS_WIFI_STATE,CHANGE_WIFI_STATE,INTERNET
