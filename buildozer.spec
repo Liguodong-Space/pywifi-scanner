@@ -13,7 +13,7 @@ requirements = python3,kivy,pywifi,android
 android.permissions = ACCESS_FINE_LOCATION,ACCESS_COARSE_LOCATION,ACCESS_WIFI_STATE,CHANGE_WIFI_STATE,INTERNET
 
 # ⚠️ Android API 版本：pywifi 需要较新的 API
-android.api = 33
+android.api = 31
 android.minapi = 24
 android.targetapi = 33
 
