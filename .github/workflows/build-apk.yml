@@ -1,53 +1,68 @@
-name: Build Android APK
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:  # 允许手动触发
+name: Build APK
+
+on: [push, workflow_dispatch]
+
+permissions:
+  contents: read
+  actions: write   # 允许删除 Actions 缓存
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
       - name: Install system dependencies
         run: |
-          sudo apt update
-          sudo apt install -y git zip unzip openjdk-17-jdk python3-pip \
+          sudo apt-get update
+          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip \
             autoconf libtool pkg-config zlib1g-dev libncurses5-dev \
-            libncursesw5-dev cmake libffi-dev libssl-dev \
-            libltdl-dev automake iw
-      - name: Install Python dependencies
+            libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+
+      - name: Install Buildozer
         run: |
-          pip3 install Cython==0.29.36
-          pip3 install --upgrade buildozer cython virtualenv
+          python -m pip install --upgrade pip
+          pip install buildozer
 
-      - name: Cache Buildozer global directory
-        uses: actions/cache@v4
-        with:
-          path: ~/.buildozer
-          key: buildozer-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-
+      # 1. 删除 GitHub 远程缓存
+      - name: Delete old GitHub Actions caches
+        run: |
+          gh cache delete --all --confirm --repo ${{ github.repository }} || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Cache Android SDK/NDK
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.buildozer/android/platform/android-sdk
-            ~/.buildozer/android/platform/android-ndk-r25b
-          key: android-sdk-ndk-${{ hashFiles('buildozer.spec') }}
-          restore-keys: android-sdk-ndk-
+      # 2. 清理本地构建缓存
+      - name: Clean local build caches
+        run: |
+          buildozer android clean || true
+          rm -rf .buildozer
+          rm -rf ~/.buildozer
+          rm -rf ~/.gradle/caches
+          rm -rf ~/.cache/pip
 
+      # 3. 执行构建
       - name: Build APK
         run: |
           buildozer android debug
-        env:
-          BUILDOZER_WARN_ON_ROOT: 0
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        if: always()
+      - name: Find APK
+        id: find-apk
+        run: |
+          apk_file=$(find ${{ github.workspace }} -type f -name '*.apk' -print -quit)
+          if [ -z "$apk_file" ]; then
+            echo "::error::No APK file found!"
+            exit 1
+          fi
+          echo "APK_PATH=$apk_file" >> $GITHUB_OUTPUT
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v5
         with:
           name: app-debug-apk
-          path: bin/*.apk
-          retention-days: 7
+          path: ${{ steps.find-apk.outputs.APK_PATH }}
